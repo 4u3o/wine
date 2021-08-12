@@ -10,28 +10,22 @@ parser = argparse.ArgumentParser(description='input data source')
 parser.add_argument(
     '--source',
     '-s',
-    default='wine2',
+    default='wine3',
     help='data source (default = wine)'
 )
 
 args = parser.parse_args()
 
-df = pd.read_excel(f'data/{args.source}.xlsx').fillna(value='')
-dd = defaultdict(str)
-sort_param = 'Категория'
+df = pd.read_excel(f'data/{args.source}.xlsx',
+                   na_filter=False)
+wines = df.to_dict('records')
 
+groups_wines = defaultdict(list)
 
-def sort_by_param(df, param):
-    columns = [x for x in df.columns.values if x != param]
-    return (df.groupby(param)[columns]
-            .apply(lambda x: x.to_dict('records', into=dd)))
+for wine in wines:
+    groups_wines[wine['Категория']].append(wine)
 
-
-if sort_param in df.columns:
-    data = sort_by_param(df, sort_param)
-else:
-    data = df.to_dict('records', into=dd)
-
+groups_wines = sorted(groups_wines.items())
 
 env = Environment(
     loader=FileSystemLoader('.'),
@@ -41,7 +35,7 @@ env = Environment(
 template = env.get_template('template.jinja')
 
 rendered_page = template.render(
-    data=data
+    data=groups_wines
 )
 
 with open('index.html', 'w', encoding="utf8") as file:
